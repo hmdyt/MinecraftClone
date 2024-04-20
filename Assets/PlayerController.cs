@@ -3,25 +3,21 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     private Rigidbody rb;
+    private ChunkManager chunkManager;
     [SerializeField] private float movementSpeed = 5.0f;
     [SerializeField] private float mouseSensitivity = 100.0f;
     private float verticalRotation = 0;
     [SerializeField] private float jumpPower = 5.0f;
     [SerializeField] private float flyingSpeed = 10.0f;
     [SerializeField] private float dashSpeedRate = 2.0f;
-
-    // TODO: 後で消す
-    [SerializeField] private GameObject blockPrefab;
-
     private float lastSpaceInputTime = -1f;
     private float doubleTapDelay = 0.3f;
-
     private bool isFlying = false;
     private bool isDashing = false;
-
     void Start()
     {
         this.rb = GetComponent<Rigidbody>();
+        this.chunkManager = GameObject.Find("ChunkManager").GetComponent<ChunkManager>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -109,7 +105,7 @@ public class PlayerController : MonoBehaviour
             var (hitBlock, hitNormal) = GetHitBlock();
             if (hitBlock == null) return;
             var newBlockPosition = hitBlock.transform.position + hitNormal;
-            Instantiate(blockPrefab, newBlockPosition, Quaternion.identity);
+            chunkManager.CreateNewBlock(newBlockPosition);
         }
     }
 

@@ -6,8 +6,6 @@ using UnityEngine;
 // 初期化時にplayerのいるチャンクを基準に周囲のチャンクを生成 (initialChunkSize = 3)
 // playerの周りの loadingChunkSize 以内のチャンクは読み込まれている(生成されていなかったら生成する)
 // それ以外は非アクティブにしておく
-
-
 public class ChunkManager : MonoBehaviour
 {
     [SerializeField] private GameObject blockPrefab;
@@ -72,6 +70,12 @@ public class ChunkManager : MonoBehaviour
             }
         }
         this.prevPlayerChunkIndex = nowPlayerChunkIndex;
+    }
+
+    public void CreateNewBlock(Vector3 position)
+    {
+        var (chunkX, chunkZ) = ChunkIndexFromPosition(position);
+        chunkPool.GetOrCreateChunk(chunkX, chunkZ).CreateNewBlock(position);
     }
 }
 
@@ -159,5 +163,14 @@ class Chunk
             if (block == null) continue;
             block.SetActive(active);
         }
+    }
+
+    public void CreateNewBlock(Vector3 position)
+    {
+        if ((int)position.x / 16 != this.chunkX || (int)position.z / 16 != this.chunkZ) {
+            throw new System.Exception(string.Format("チャンク({0}, {1})内の座標(x={2} ~ {3}, z={4} ~ {5})を期待しましたが、座標({6}, {7})が与えられました", this.chunkX, this.chunkZ, this.chunkX * 16, this.chunkX * 16 + 15, this.chunkZ * 16, this.chunkZ * 16 + 15, position.x, position.z));
+        }
+        GameObject block = GameObject.Instantiate(blockPrefab, position, Quaternion.identity);
+        blocks.Add(block);
     }
 }
