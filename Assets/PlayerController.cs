@@ -8,6 +8,9 @@ public class PlayerController : MonoBehaviour
     private float verticalRotation = 0;
     [SerializeField] private float jumpPower = 5.0f;
 
+    // TODO: 後で消す
+    [SerializeField] private GameObject blockPrefab;
+
     void Start()
     {
         this.rb = GetComponent<Rigidbody>();
@@ -20,6 +23,7 @@ public class PlayerController : MonoBehaviour
         PerspectiveControl();
         MovementControl();
         JumpControl();
+        ActionControl();
     }
 
     void PerspectiveControl()
@@ -49,5 +53,29 @@ public class PlayerController : MonoBehaviour
         {
             this.rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
         }
+    }
+
+    private void ActionControl()
+    {
+        if (Input.GetMouseButtonDown(1))
+        {
+            var (hitBlock, hitNormal) = GetHitBlock();
+            if (hitBlock == null) return;
+            var newBlockPosition = hitBlock.transform.position + hitNormal;
+            Instantiate(blockPrefab, newBlockPosition, Quaternion.identity);
+        }
+    }
+
+    private (GameObject, Vector3) GetHitBlock()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 30.0f))
+        {
+            GameObject hitBlock = hit.collider.gameObject;
+            Vector3 hitNormal = hit.normal;
+            return (hitBlock, hitNormal);
+        }
+        return (null, Vector3.zero);
     }
 }
