@@ -156,6 +156,7 @@ class Chunk
     {
         foreach (var block in blocks)
         {
+            if (block == null) continue;
             block.SetActive(active);
         }
     }
