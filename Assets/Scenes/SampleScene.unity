@@ -605,6 +605,7 @@ MonoBehaviour:
   movementSpeed: 5
   mouseSensitivity: 500
   jumpPower: 5
+  flyingSpeed: 10
   blockPrefab: {fileID: 8966508911408466999, guid: f1e2afad2b60e49f29af2a03cdc31bba, type: 3}
 --- !u!54 &1748579452
 Rigidbody:
