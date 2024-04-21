@@ -10,14 +10,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpPower = 5.0f;
     [SerializeField] private float flyingSpeed = 10.0f;
     [SerializeField] private float dashSpeedRate = 2.0f;
-    private float lastSpaceInputTime = -1f;
     private float doubleTapDelay = 0.3f;
     private bool isFlying = false;
     private bool isDashing = false;
+    private IInputHandler inputHandler;
     void Start()
     {
         this.rb = GetComponent<Rigidbody>();
         this.chunkManager = GameObject.Find("ChunkManager").GetComponent<ChunkManager>();
+        this.inputHandler = new KeyboardInputHandler(doubleTapDelay);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -38,17 +39,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ctrlが押されている間はダッシュする
     void DashControl()
     {
-        if (Input.GetKeyDown(KeyCode.LeftControl))
-        {
-            isDashing = true;
-        }
-        if (Input.GetKeyUp(KeyCode.LeftControl))
-        {
-            isDashing = false;
-        }
+        isDashing = this.inputHandler.GetDash();
     }
 
     float FixedMovementSpeed() {return movementSpeed * (isDashing ? dashSpeedRate : 1.0f);}
@@ -66,8 +59,8 @@ public class PlayerController : MonoBehaviour
 
     void MovementControl()
     {
-        float forwardSpeed = Input.GetAxis("Vertical") * FixedMovementSpeed();
-        float sideSpeed = Input.GetAxis("Horizontal") * FixedMovementSpeed();
+        float forwardSpeed = this.inputHandler.GetVertical() * FixedMovementSpeed();
+        float sideSpeed = this.inputHandler.GetHorizontal() * FixedMovementSpeed();
 
         Vector3 speed = new Vector3(sideSpeed, 0, forwardSpeed);
         speed = transform.rotation * speed;
@@ -76,7 +69,7 @@ public class PlayerController : MonoBehaviour
 
     void JumpControl()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (this.inputHandler.GetJump())
         {
             // 地面に接している場合のみジャンプできる
             if (Physics.Raycast(transform.position, Vector3.down, 1.1f))
@@ -88,10 +81,10 @@ public class PlayerController : MonoBehaviour
 
     void FlyingControl()
     {
-        float forwardSpeed = Input.GetAxis("Vertical") * FixedFlyingSpeed();
-        float sideSpeed = Input.GetAxis("Horizontal") * FixedFlyingSpeed();
-        float upSpeed = Input.GetKey(KeyCode.Space) ? FixedFlyingSpeed() : 0;
-        float downSpeed = Input.GetKey(KeyCode.LeftShift) ? FixedFlyingSpeed() : 0;
+        float forwardSpeed = this.inputHandler.GetVertical() * FixedFlyingSpeed();
+        float sideSpeed = this.inputHandler.GetHorizontal() * FixedFlyingSpeed();
+        float upSpeed = this.inputHandler.GetFlyUp() ? FixedFlyingSpeed() : 0;
+        float downSpeed = this.inputHandler.GetFlyDown() ? FixedFlyingSpeed() : 0;
 
         Vector3 speed = new Vector3(sideSpeed, upSpeed - downSpeed , forwardSpeed);
         speed = transform.rotation * speed;
@@ -124,15 +117,9 @@ public class PlayerController : MonoBehaviour
 
     private void ToggleFlyingMode()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (this.inputHandler.GetFlyToggle())
         {
-            if (Time.time - lastSpaceInputTime < doubleTapDelay)
-            {
-                isFlying = !isFlying;
-            }
-            lastSpaceInputTime = Time.time;
-
-            // 飛行モードに移った場合、重力と慣性を無効化する
+            isFlying = !isFlying;
             if (isFlying)
             {
                 rb.useGravity = false;
@@ -143,5 +130,79 @@ public class PlayerController : MonoBehaviour
                 rb.useGravity = true;
             }
         }
+    }
+}
+
+public interface IInputHandler
+{
+    float GetHorizontal();
+    float GetVertical();
+    bool GetJump();
+    bool GetDash();
+    bool GetFlyToggle();
+    bool GetFlyUp();
+    bool GetFlyDown();
+}
+
+// TODO: これを MonoBehaviour していい感じにできる？ Dash周りの処理が微妙なので
+public class KeyboardInputHandler : IInputHandler
+{
+    private float lastSpaceInputTime = -1f;
+    private float doubleTapDelay;
+    private bool isLeftCtrlDown = false;
+
+    public KeyboardInputHandler(float doubleTapDelay)
+    {
+        this.doubleTapDelay = doubleTapDelay;
+    }
+    public float GetHorizontal()
+    {
+        return Input.GetAxis("Horizontal");
+    }
+
+    public float GetVertical()
+    {
+        return Input.GetAxis("Vertical");
+    }
+
+    public bool GetJump()
+    {
+        return Input.GetKeyDown(KeyCode.Space);
+    }
+
+    public bool GetDash()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftControl))
+        {
+            isLeftCtrlDown = true;
+        }
+        if (Input.GetKeyUp(KeyCode.LeftControl))
+        {
+            isLeftCtrlDown = false;
+        }
+        return isLeftCtrlDown;
+    }
+
+    public bool GetFlyToggle()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            if (Time.time - lastSpaceInputTime < doubleTapDelay)
+            {
+                return true;
+            }
+            lastSpaceInputTime = Time.time;
+        }
+        return false;
+    }
+
+    public bool GetFlyUp()
+    {
+        return Input.GetKey(KeyCode.Space);
+    }
+
+    public bool GetFlyDown()
+    {
+        return Input.GetKey(KeyCode.LeftShift);
     }
 }
